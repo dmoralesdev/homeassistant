@@ -1,0 +1,447 @@
+blueprint:
+  name: "Inovelli Blue VZM31-SN - Animated Notifications (ZHA)"
+  description: |
+    Blueprint to create a script, seeking to generate notification effects on the LED bar of the Inovelli Blue Series 
+    (Model VZM31-SN) switches in an easy and efficient way using ZHA. 
+    
+    You can use the target selector to choose 1 or many (or ALL) your switches at the same time.
+
+    Credits to @zanix and @nwithan8 as both blueprints were used as base to this one
+    https://github.com/zanix/home-assistant-blueprints/blob/master/script/inovelli_blue_led_zigbee2mqtt.yaml
+    https://github.com/nwithan8/configs/blob/main/home_assistant/blueprints/scripts/inovelli_vzm31-sn_notification_led_zha.yaml
+  domain: script
+
+fields:
+  target:
+    name: Target
+    description: Inovelli devices, entities, and/or areas with Inovelli devices to set effects.
+    selector:
+      target:
+        device:
+          integration: zha
+          manufacturer: Inovelli
+        entity:
+          integration: zha
+          domain: light
+  led:
+    name: LED
+    description: Choose which LED to control. Default is All.
+    default: All
+    selector:
+      select:
+        custom_value: true
+        options:
+          - All
+          - Led 1
+          - Led 2
+          - Led 3
+          - Led 4
+          - Led 5
+          - Led 6
+          - Led 7
+  color:
+    name: LED Color
+    default: Red
+    selector:
+      select:
+        custom_value: true
+        options:
+          - Red
+          - Orange
+          - Yellow
+          - Green
+          - Cyan
+          - Teal
+          - Blue
+          - Purple
+          - Light Pink
+          - Pink
+          - White
+  level:
+    name: Brightness level
+    description: Value from 0 (off) to 100 (100% brightness).
+    default: 100
+    example: "40"
+    selector:
+      number:
+        min: 0
+        max: 100
+  effect:
+    name: "Effect"
+    description: Choose LED effect to apply.
+    default: Fast Blink
+    selector:
+      select:
+        custom_value: true
+        options:
+          - "Off"
+          - "Solid"
+          - "Fast Blink"
+          - "Slow Blink"
+          - "Pulse"
+          - "Chase"
+          - "Open-Close"
+          - "Small-Big"
+          - "Clear"
+  duration:
+    name: Duration
+    description: How long should the effect run?
+    default: 10 Seconds
+    selector:
+      select:
+        custom_value: true
+        options:
+          - 1 Second
+          - 2 Seconds
+          - 3 Seconds
+          - 4 Seconds
+          - 5 Seconds
+          - 6 Seconds
+          - 7 Seconds
+          - 8 Seconds
+          - 9 Seconds
+          - 10 Seconds
+          - 15 Seconds
+          - 20 Seconds
+          - 25 Seconds
+          - 30 Seconds
+          - 35 Seconds
+          - 40 Seconds
+          - 45 Seconds
+          - 50 Seconds
+          - 55 Seconds
+          - 1 Minute
+          - 2 Minutes
+          - 3 Minutes
+          - 4 Minutes
+          - 5 Minutes
+          - 6 Minutes
+          - 7 Minutes
+          - 8 Minutes
+          - 9 Minutes
+          - 10 Minutes
+          - 15 Minutes
+          - 20 Minutes
+          - 25 Minutes
+          - 30 Minutes
+          - 35 Minutes
+          - 40 Minutes
+          - 45 Minutes
+          - 50 Minutes
+          - 55 Minutes
+          - 1 Hour
+          - 2 Hours
+          - 3 Hours
+          - 4 Hours
+          - 5 Hours
+          - 6 Hours
+          - 7 Hours
+          - 8 Hours
+          - 9 Hours
+          - 10 Hours
+          - 15 Hours
+          - 20 Hours
+          - 1 Day
+          - 2 Days
+          - 3 Days
+          - 4 Days
+          - 5 Days
+          - Indefinitely
+  enable_debug:
+    name: Enable debug output?
+    selector:
+      boolean:
+
+variables:
+  # Set to true to create a "persistent_notification" with debugging information.
+  debug: "{{ iif(enable_debug is defined, enable_debug, false) }}"
+
+  # Create a list of provided targets (areas, devices, entities)
+  target: "{{ target|default([])|map(lower) }}"
+  area: "{{ target.area_id|default([])|lower }}"
+  device: "{{ target.device_id|default([])|lower }}"
+  entity: "{{ target.entity_id|default([])|lower }}"
+  entity_list: >
+    {% set switch = namespace(entities=[]) %}
+
+    {# Areas #}
+    {% set areas = namespace(areas=[]) %}
+    {% if area %}
+      {# Convert to a list #}
+      {% if ',' in area %}
+        {% set areanum = area.split(',') | count %}
+        {% for i in range(0,areanum) %}
+          {% set areas.areas = areas.areas + [area.split(',')[i]|string|trim ] %}
+        {% endfor %}
+      {% elif area[0]|count == 1 %}
+        {# if the first item in the list has only a single character, it can't be a valid entity #}
+        {% set areas.areas = areas.areas + [area|string|trim] %}
+      {% else %}
+        {% set areas.areas = area %}
+      {% endif %}
+      {# Detect switches #}
+      {% for area in areas.areas %}
+        {% for ent in area_entities(area) %}
+          {% if is_device_attr(ent, 'model', 'VZM31-SN') and ent.split('.')[0] == 'light' %}
+            {% set switch.entities = switch.entities + [ent|string|trim] %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+
+    {# Devices #}
+    {% set devices = namespace(devices=[]) %}
+    {% if device %}
+      {# Convert to a list #}
+      {% if ',' in device %}
+        {% set devicenum = device.split(',') | count %}
+        {% for i in range(0,devicenum) %}
+          {% set devices.devices = devices.devices + [device.split(',')[i]|string|trim ] %}
+        {% endfor %}
+      {% elif device[0]|count == 1 %} {# if the first item in the list has only a single character, it can't be a valid entity #}
+        {% set devices.devices = devices.devices + [device|string|trim] %}
+      {% else %}
+        {% set devices.devices = device %}
+      {% endif %}
+      {# Detect switches #}
+      {% for device in devices.devices %}
+        {% for ent in device_entities(device) %}
+          {% if is_device_attr(ent, 'model', 'VZM31-SN') and ent.split('.')[0] == 'light' %}
+            {% set switch.entities = switch.entities + [ent|string|trim] %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+
+    {# Entities #}
+    {% set entities = namespace(entities=[]) %}
+    {% if entity %}
+      {# Convert to a list #}
+      {% if ',' in entity %}
+        {% set entitynum = entity.split(',') | count %}
+        {% for i in range(0, entitynum) %}
+          {% set entities.entities = entities.entities + [entity.split(',')[i]|string|trim ] %}
+        {% endfor %}
+      {% elif entity[0]|count == 1 %} {# if the first item in the list has only a single character, it can't be a valid entity #}
+        {% set entities.entities = entities.entities + [entity|string|trim] %}
+      {% else %}
+        {% set entities.entities = entity %}
+      {% endif %}
+      {# Detect switches #}
+      {% for ent in entities.entities %}
+        {% if is_device_attr(ent, 'model', 'VZM31-SN') and ent.split('.')[0] == 'light' %}
+          {% set switch.entities = switch.entities + [ent|string|trim] %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {{ switch.entities|unique|list|lower }}
+
+  # Convert LED number to value
+  leds:
+    "all": -1
+    "led 1": 0
+    "led 2": 1
+    "led 3": 2
+    "led 4": 3
+    "led 5": 4
+    "led 6": 5
+    "led 7": 6
+  led: '{{ led|default("all") }}'
+  led_value: >-
+    {% if led|int(default=-2) == -2 %}
+      {{ leds[led|lower]|int(default=-1) }}
+    {% else %}
+      {{ led|int(default=-1) }}
+    {% endif %}
+
+  level: "{{ level|default(100) }}"
+
+  # Convert Color to value
+  colors:
+    "red": 1
+    "orange": 21
+    "yellow": 42
+    "green": 85
+    "cyan": 127
+    "teal": 145
+    "blue": 170
+    "purple": 195
+    "light pink": 220
+    "lightpink": 220
+    "pink": 234
+    "white": 255
+  color: '{{ color|default("red") }}'
+  color_value: >-
+    {% if color|int(default=-1) == -1 %}
+      {{ colors[color|lower]|int(default=1) }}
+    {% else %}
+      {{ color|int(default=1) }}
+    {% endif %}
+
+  # Convert Effect to value
+  effects:
+    "off": "0"
+    "solid": "1"
+    "fast blink": "2"
+    "slow blink": "3"
+    "pulse": "4"
+    "chase": "5"
+    "open-close": "6"
+    "small-big": "7"
+    "clear": "255"
+  effect: '{{ effect|default("fast blink") }}'
+  effect_value: >-
+    {% if effect|lower in effects %}
+      {{ effects[effect|lower] }}
+    {% else %}
+      {{ effect|lower }}
+    {% endif %}
+
+  # Convert Duration to value
+  durations:
+    "1 second": 1
+    "2 seconds": 2
+    "3 seconds": 3
+    "4 seconds": 4
+    "5 seconds": 5
+    "6 seconds": 6
+    "7 seconds": 7
+    "8 seconds": 8
+    "9 seconds": 9
+    "10 seconds": 10
+    "15 seconds": 15
+    "20 seconds": 20
+    "25 seconds": 25
+    "30 seconds": 30
+    "35 seconds": 35
+    "40 seconds": 40
+    "45 seconds": 45
+    "50 seconds": 50
+    "55 seconds": 55
+    "1 minute": 60
+    "2 minutes": 62
+    "3 minutes": 63
+    "4 minutes": 64
+    "5 minutes": 65
+    "6 minutes": 66
+    "7 minutes": 67
+    "8 minutes": 68
+    "9 minutes": 69
+    "10 minutes": 70
+    "15 minutes": 75
+    "20 minutes": 80
+    "25 minutes": 85
+    "30 minutes": 90
+    "35 minutes": 95
+    "40 minutes": 100
+    "45 minutes": 105
+    "50 minutes": 110
+    "55 minutes": 115
+    "1 hour": 120
+    "2 hours": 122
+    "3 hours": 123
+    "4 hours": 124
+    "5 hours": 125
+    "6 hours": 126
+    "7 hours": 127
+    "8 hours": 128
+    "9 hours": 129
+    "10 hours": 130
+    "15 hours": 135
+    "20 hours": 140
+    "1 day": 144
+    "2 days": 168
+    "3 days": 192
+    "4 days": 216
+    "5 days": 240
+    "indefinitely": 255
+  duration: '{{ duration|default("10 seconds") }}'
+  duration_value: >-
+    {% if duration|int(default=-1) == -1 %}
+      {{ durations[duration|lower]|int(default=10) }}
+    {% else %}
+      {{ duration|int(default=10) }}
+    {% endif %}
+
+sequence:
+  # Set enable_debug = true above to provide output troubleshooting information.
+  - if:
+      - condition: template
+        value_template: "{{ debug == true }}"
+    then:
+      - service: persistent_notification.create
+        data:
+          notification_id: "inovelli_animated"
+          title: "DEBUG: inovelli_animated"
+          message: |-
+            entity list: {{ entity_list }}
+            entity count: {{ entity_list|count }}
+            led: {{ led }} ({{ led_value }})
+            color: {{ color }} ({{ color_value }})
+            level: {{ level }}
+            effect: {{ effect }} ({{ effect_value }})
+            duration: {{ duration }} ({{ duration_value }})
+
+  # Do not continue if we don't have at least one entity
+  - condition: template
+    value_template: |
+      {{ entity_list|count > 0 }}
+
+  - variables:
+      # Construct the payload
+      payload: |-
+        {% if led_value == -1 %}
+          {% set payload_data = {
+            "led_effect": effect_value,
+            "led_color": color_value,
+            "led_level": level,
+            "led_duration": duration_value,
+            } %}
+        {% else %}
+          {% set payload_data = {
+            "led_number": led_value,
+            "led_effect": effect_value,
+            "led_color": color_value,
+            "led_level": level,
+            "led_duration": duration_value,
+            } %}
+        {% endif %}
+        {{ payload_data }}
+
+  # Loop through entity_list
+  - repeat:
+      for_each: "{{ entity_list }}"
+      sequence:
+        # Set enable_debug = true above to provide output troubleshooting information
+        - if:
+            - condition: template
+              value_template: "{{ debug == true }}"
+          then:
+            - service: persistent_notification.create
+              data:
+                notification_id: "inovelli_animated::{{ repeat.item }}"
+                title: "DEBUG: inovelli_animated::{{ repeat.item }}"
+                message: |-
+                  entity: {{ repeat.item }}
+                  device name: {{ device_attr(repeat.item, "name") }}
+                  IEEE: {{ (device_attr(repeat.item, "identifiers")|list).0.1 }}
+                  payload: {{ payload }}
+
+        - service: zha.issue_zigbee_cluster_command
+          data:
+            ieee: >
+              {{ (device_attr(repeat.item, "identifiers")|list).0.1 }}
+            endpoint_id: 1
+            cluster_id: 64561
+            cluster_type: in
+            command: >
+              {{ iif(led_value == -1, 1, 3) }}
+            command_type: server
+            params: "{{ payload }}"
+            manufacturer: 4655
+
+icon: mdi:led-on
+mode: parallel
+max_exceeded: silent
+max: 100
