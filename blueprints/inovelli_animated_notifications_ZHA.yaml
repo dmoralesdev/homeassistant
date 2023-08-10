@@ -5,9 +5,7 @@ blueprint:
 
     When invoking the script, use the target selector for Areas containing switches or specific Devices/Entities.
 
-    Credits to @zanix and @nwithan8 as both blueprints were used as base to this one
-    https://github.com/zanix/home-assistant-blueprints/blob/master/script/inovelli_blue_led_zigbee2mqtt.yaml
-    https://github.com/nwithan8/configs/blob/main/home_assistant/blueprints/scripts/inovelli_vzm31-sn_notification_led_zha.yaml
+    Credits to @zanix and @nwithan8 as both their blueprints were used as a base to this one
   domain: script
   source_url: https://github.com/dmoralesdev/homeassistant/blob/main/blueprints/inovelli_animated_notifications_ZHA.yaml
 
