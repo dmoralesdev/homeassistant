@@ -73,14 +73,27 @@ fields:
         custom_value: true
         options:
           - "Off"
+          - "Clear"
           - "Solid"
-          - "Fast Blink"
           - "Slow Blink"
+          - "Medium Blink"
+          - "Fast Blink"
           - "Pulse"
+          - "Aurora"
+          - "Slow Falling"
+          - "Medium Falling"
+          - "Fast Falling"
+          - "Slow Rising"
+          - "Medium Rising"
+          - "Fast Rising"
+          - "Slow Siren"
+          - "Fast Siren"
           - "Chase"
+          - "Slow Chase"
+          - "Medium Chase"
+          - "Fast Chase"
           - "Open-Close"
           - "Small-Big"
-          - "Clear"
   duration:
     name: Duration
     description: How long should the effect run?
@@ -279,15 +292,28 @@ variables:
 
   # Convert Effect to value
   effects:
-    "off": "0"
-    "solid": "1"
-    "fast blink": "2"
-    "slow blink": "3"
-    "pulse": "4"
-    "chase": "5"
-    "open-close": "6"
-    "small-big": "7"
-    "clear": "255"
+    "off": 0
+    "clear": 255
+    "solid": 1
+    "slow blink": 3
+    "medium blink": 15
+    "fast blink": 2
+    "pulse": 4
+    "aurora": 8
+    "slow falling": 9
+    "medium falling": 10
+    "fast falling": 11
+    "slow rising": 12
+    "medium rising": 13
+    "fast rising": 14
+    "chase": 5
+    "slow chase": 16
+    "medium chase": 5
+    "fast chase": 17
+    "fast siren": 18
+    "slow siren": 19
+    "open-close": 6
+    "small-big": 7
   effect: '{{ effect|default("fast blink") }}'
   effect_value: >-
     {% if effect|lower in effects %}
