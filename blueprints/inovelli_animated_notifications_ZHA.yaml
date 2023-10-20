@@ -193,7 +193,7 @@ variables:
       {# Detect switches #}
       {% for area in areas.areas %}
         {% for ent in area_entities(area) %}
-          {% if is_device_attr(ent, 'model', 'VZM31-SN') and ent.split('.')[0] == 'light' %}
+          {% if (is_device_attr(ent, 'model', 'VZM31-SN') or is_device_attr(ent, 'model', 'VZM35-SN')) and ent.split('.')[0] == 'light' %}
             {% set switch.entities = switch.entities + [ent|string|trim] %}
           {% endif %}
         {% endfor %}
@@ -217,7 +217,7 @@ variables:
       {# Detect switches #}
       {% for device in devices.devices %}
         {% for ent in device_entities(device) %}
-          {% if is_device_attr(ent, 'model', 'VZM31-SN') and ent.split('.')[0] == 'light' %}
+          {% if (is_device_attr(ent, 'model', 'VZM31-SN') or is_device_attr(ent, 'model', 'VZM35-SN')) and ent.split('.')[0] == 'light' %}
             {% set switch.entities = switch.entities + [ent|string|trim] %}
           {% endif %}
         {% endfor %}
@@ -240,7 +240,7 @@ variables:
       {% endif %}
       {# Detect switches #}
       {% for ent in entities.entities %}
-        {% if is_device_attr(ent, 'model', 'VZM31-SN') and ent.split('.')[0] == 'light' %}
+        {% if (is_device_attr(ent, 'model', 'VZM31-SN') or is_device_attr(ent, 'model', 'VZM35-SN')) and ent.split('.')[0] == 'light' %}
           {% set switch.entities = switch.entities + [ent|string|trim] %}
         {% endif %}
       {% endfor %}
@@ -399,6 +399,10 @@ sequence:
           notification_id: "inovelli_animated"
           title: "DEBUG: inovelli_animated"
           message: |-
+            target: {{ target }}
+            area: {{ area }}
+            device: {{ device }}
+            entity: {{ entity }}
             entity list: {{ entity_list }}
             entity count: {{ entity_list|count }}
             led: {{ led }} ({{ led_value }})
